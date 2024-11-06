@@ -167,18 +167,6 @@ To verify Action 4, enter the `src_prolog` directory and follow the related [REA
 
 ## Customizations 
 
-### Build the ANTLR4 grammar
-
-ANTLR4 grammars are already compiled and embedded into ROSE-T. 
-We provide the `.g4` of the grammars in the `grammars` folder if you wish to update or improve it. 
-
-To re-compile the new grammar and move the compiled Python result into ROSE-T, you can use the `Makefile` located in the `grammars` folder:
-```bash
-make grammar_<os_name>
-```
-
-Where `<os_name>` corresponds to the name of the associated grammar file without extension: `IosXr`, `Junos`, or `Routeros`.
-
 ### Change the vendor router Docker image name
 
 **NOTE:** For now, the container name is hardcoded into ROSE-T. 
