@@ -46,6 +46,7 @@ class MrtLoader:
 
         cur = self.conn.cursor()
 
+        mrt_reader = mrtparse.Reader(self.path)
         for entry in mrt_reader:
             if entry.err:
                 continue

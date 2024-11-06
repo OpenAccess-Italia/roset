@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import random
 
 from rs4lk.actions.action_manager import ActionManager
 from rs4lk.colored_logging import set_logging
@@ -26,6 +27,8 @@ def parse_args():
 
 
 def main(args):
+    random.seed(3000)
+
     grammar_parser = GrammarParser()
     vendor_config = grammar_parser.parse(args.config_path, args.config_syntax)
 

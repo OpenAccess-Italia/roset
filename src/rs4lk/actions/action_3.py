@@ -413,6 +413,10 @@ class Action3(Action):
 
         sniff_passed = result_sniff.decode('utf-8').strip() == "1"
 
+        # print(f"/usr/bin/python3 /host_sniffer.py {dst_ip} {spoof_ip} {v}", result_spoof)
+        # print(f"/usr/bin/python3 /host_spoof_check.py {candidate_ip} {spoof_ip} {dst_ip} {v}", result_sniff)
+        # exit(1)
+
         return spoof_passed and sniff_passed
 
     def name(self) -> str:

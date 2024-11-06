@@ -5,7 +5,7 @@ import re
 from Kathara.model.Lab import Lab
 
 from ...foundation.configuration.vendor_configuration import VendorConfiguration
-from ...model.interface import Interface
+from ...model.interface import Interface, VlanInterface
 
 
 class IosxrConfiguration(VendorConfiguration):
@@ -37,19 +37,24 @@ class IosxrConfiguration(VendorConfiguration):
     def _remap_interfaces(self) -> None:
         last_iface_idx = [-1]
         for iface in self.interfaces.values():
-            self._remap_interface(iface, last_iface_idx)
+            if not isinstance(iface, VlanInterface):
+                self._remap_interface(iface, last_iface_idx)
+
+        for iface in self.interfaces.values():
+            if isinstance(iface, VlanInterface):
+                phy_idx = self.iface_to_iface_idx[iface.phy.name]
+                iface.rename(self._build_iface_name("GigabitEthernet0", 0, 0, phy_idx, iface.vlan))
+                self.iface_to_iface_idx[iface.name] = phy_idx
 
     def _remap_interface(self, iface: Interface, last_iface_idx: list[int]) -> None:
         iface_name = iface.name
         if '/' not in iface_name:
             return
 
-        iface_type, unit, slot, num, vlan = self._parse_iface_format(iface.name)
-        if vlan is None:
-            last_iface_idx[0] += 1
+        last_iface_idx[0] += 1
 
         # IOS XR container requires all interfaces to be "GigabitEthernet0", in unit 0, and slot 0
-        iface.rename(self._build_iface_name("GigabitEthernet0", 0, 0, last_iface_idx[0], vlan))
+        iface.rename(self._build_iface_name("GigabitEthernet0", 0, 0, last_iface_idx[0], None))
 
         self.iface_to_iface_idx[iface.name] = last_iface_idx[0]
 
@@ -117,7 +122,7 @@ class IosxrConfiguration(VendorConfiguration):
             if iface.original_name == iface.name:
                 continue
 
-            all_lines = re.sub(rf"\b{iface.original_name}\b", iface.name, all_lines)
+            all_lines = re.sub(rf'\b{iface.original_name}\b', iface.name, all_lines)
 
         tmp_clean_lines = []
         for line in all_lines.split("\n"):

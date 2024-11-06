@@ -3,5 +3,3 @@ coloredlogs
 requests
 sortedcontainers
 mrtparse
-antlr4-python3-runtime
-antlr4-tools
