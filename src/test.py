@@ -52,7 +52,7 @@ def main(args):
     all_passed = False
     try:
         action_manager = ActionManager(exclude=args.exclude_checks.split(','))
-        results = action_manager.start(vendor_config, topology, net_scenario)
+        results = action_manager.start(vendor_config, topology, table_dump, net_scenario)
         all_passed = all([x.passed() for x in results])
 
         for result in results:

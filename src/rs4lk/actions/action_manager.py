@@ -7,13 +7,15 @@ from Kathara.manager.Kathara import Kathara
 from Kathara.model.Lab import Lab
 from Kathara.model.Machine import Machine
 
-from .action_3 import Action3
-from .action_4 import Action4
+from .antispoofing_action import AntiSpoofingAction
+from .global_information_action import GlobalInformationAction
+from .route_leak_action import RouteLeakAction
 from ..foundation.actions.action import Action
 from ..foundation.actions.action_result import ActionResult
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..foundation.exceptions import BgpRuntimeError, ConfigValidationError
 from ..model.topology import Topology, Client, BgpRouter
+from ..mrt.table_dump import TableDump
 
 CONVERGENCE_ATTEMPTS = 100
 
@@ -21,7 +23,7 @@ CONVERGENCE_ATTEMPTS = 100
 class ActionManager:
     __slots__ = ['_actions']
 
-    DEFAULT_ACTIONS: list[Action] = [Action3(), Action4()]
+    DEFAULT_ACTIONS: list[Action] = [GlobalInformationAction(), AntiSpoofingAction(), RouteLeakAction()]
 
     def __init__(self, exclude: list[str] | None = None):
         if exclude is None:
@@ -29,7 +31,9 @@ class ActionManager:
         else:
             self._actions: list[Action] = list(filter(lambda x: x.name() not in exclude, self.DEFAULT_ACTIONS))
 
-    def start(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> list[ActionResult]:
+    def start(
+            self, config: VendorConfiguration, topology: Topology, table_dump: TableDump, net_scenario: Lab
+    ) -> list[ActionResult]:
         self._check_configuration_validity(config, net_scenario)
 
         converged = self._wait_convergence(topology, net_scenario)
@@ -41,7 +45,7 @@ class ActionManager:
         logging.info("Starting MANRS actions check...")
         for action in self._actions:
             logging.info(f"Starting `{action.display_name()}` verification...")
-            action_result = action.verify(config, topology, net_scenario)
+            action_result = action.verify(config, table_dump, topology, net_scenario)
             results.append(action_result)
 
         return results

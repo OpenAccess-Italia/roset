@@ -153,17 +153,12 @@ The supported parameters are:
 - `--config_path`: Path to the configuration to test.
 - `--config_syntax`: The syntax of the provided configuration. Supported values are `Junos` (for VMX), `IosXr` (for Cisco IOS XR), `Routeros` (for MikroTik RouterOS).
 - `--rib_dump`: Path pointing to the `.db` SQLite3 database containing the parsed MRT RIB dump. By default, the value is `resources/rib_latest.db`.
-- `--exclude_checks`: A comma separated string to exclude some MANRS checks. Supported values are `spoofing` and `leak`.
+- `--exclude_checks`: A comma separated string to exclude some MANRS checks. Supported values are `information`, `spoofing`, and `leak`.
 - `--result-level`: The output of the validation will report both successful checks, warnings and errors. You can change the level of output with this parameters. Supported values are `WARNING`, `SUCCESS`, and `ERROR`.
 
 The test can take up to few minutes, depending on your hardware. Ensure that you have a good amount of RAM and nested virtualization enabled.
 
 **NOTE**: ROSE-T works only on Docker on Linux or WSL2, and it is compatible only with the `amd64` architecture (Apple Silicon is not supported).
-
-### Action 4 verification
-Currently, the Action 4 verification is a standalone Prolog program. We plan to merge the two tools in the near future.
-
-To verify Action 4, enter the `src_prolog` directory and follow the related [README](src_prolog/README.md) file.
 
 ## Customizations 
 

@@ -204,13 +204,12 @@ class Neighbour:
 
 
 class Topology:
-    __slots__ = ['_vendor_config', '_nodes', '_table_dump', '_ripe_api']
+    __slots__ = ['_vendor_config', '_nodes', '_table_dump']
 
     def __init__(self, vendor_config: VendorConfiguration, table_dump: TableDump) -> None:
         self._vendor_config: VendorConfiguration = vendor_config
         self._nodes: OrderedDict = OrderedDict()
         self._table_dump: TableDump = table_dump
-        self._ripe_api = RipeDb()
 
         self._build()
 
@@ -405,7 +404,7 @@ class Topology:
     def _infer_bgp_relationships(self) -> None:
         logging.info("Inferring BGP relationships...")
 
-        (import_rules, _) = self._ripe_api.get_local_as_rules(self._vendor_config.local_as)
+        (import_rules, _) = RipeDb.get_instance().get_local_as_rules(self._vendor_config.local_as)
 
         # Remove 'afi XXYY' if it is a mp-import
         import_rules = set([" ".join(x.split(' ')[2:]) if 'afi' in x else x for x in import_rules])

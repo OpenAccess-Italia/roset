@@ -18,10 +18,14 @@ from ..foundation.actions.action_result import ActionResult, WARNING, SUCCESS, E
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..globals import RESOURCES_FOLDER
 from ..model.topology import Topology, INTERNET_AS_NUM
+from ..mrt.table_dump import TableDump
 
 
-class Action3(Action):
-    def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> ActionResult:
+class AntiSpoofingAction(Action):
+    def verify(
+            self, config: VendorConfiguration, table_dump: TableDump, topology: Topology | None = None,
+            net_scenario: Lab | None = None
+    ) -> ActionResult:
         action_result = ActionResult(self)
 
         candidate = topology.get(config.local_as)
@@ -412,10 +416,6 @@ class Action3(Action):
                 pass
 
         sniff_passed = result_sniff.decode('utf-8').strip() == "1"
-
-        # print(f"/usr/bin/python3 /host_sniffer.py {dst_ip} {spoof_ip} {v}", result_spoof)
-        # print(f"/usr/bin/python3 /host_spoof_check.py {candidate_ip} {spoof_ip} {dst_ip} {v}", result_sniff)
-        # exit(1)
 
         return spoof_passed and sniff_passed
 

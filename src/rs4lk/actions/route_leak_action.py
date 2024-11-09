@@ -13,10 +13,14 @@ from ..foundation.actions.action import Action
 from ..foundation.actions.action_result import ActionResult, WARNING, SUCCESS, ERROR
 from ..foundation.configuration.vendor_configuration import VendorConfiguration
 from ..model.topology import Topology
+from ..mrt.table_dump import TableDump
 
 
-class Action4(Action):
-    def verify(self, config: VendorConfiguration, topology: Topology, net_scenario: Lab) -> ActionResult:
+class RouteLeakAction(Action):
+    def verify(
+            self, config: VendorConfiguration, table_dump: TableDump, topology: Topology | None = None,
+            net_scenario: Lab | None = None
+    ) -> ActionResult:
         action_result = ActionResult(self)
 
         candidate = topology.get(config.local_as)
