@@ -1,6 +1,7 @@
 import argparse
 import logging
 import os
+import random
 
 from rs4lk.actions.action_manager import ActionManager
 from rs4lk.colored_logging import set_logging
@@ -26,6 +27,8 @@ def parse_args():
 
 
 def main(args):
+    random.seed(3000)
+
     grammar_parser = GrammarParser()
     vendor_config = grammar_parser.parse(args.config_path, args.config_syntax)
 
@@ -49,7 +52,7 @@ def main(args):
     all_passed = False
     try:
         action_manager = ActionManager(exclude=args.exclude_checks.split(','))
-        results = action_manager.start(vendor_config, topology, net_scenario)
+        results = action_manager.start(vendor_config, topology, table_dump, net_scenario)
         all_passed = all([x.passed() for x in results])
 
         for result in results:

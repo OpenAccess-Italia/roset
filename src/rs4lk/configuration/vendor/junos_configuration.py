@@ -17,6 +17,7 @@ class JunosConfiguration(VendorConfiguration):
                     "-oStrictHostKeyChecking=no -oConnectTimeout=1 vrnetlab@localhost \"{command}\"")
 
     def _remap_interfaces(self) -> None:
+        # Iface 0 is the mgmt interface
         last_iface_idx = [0]
         for iface in self.interfaces.values():
             if not isinstance(iface, VlanInterface):
@@ -87,12 +88,12 @@ class JunosConfiguration(VendorConfiguration):
                 name_to_replace_unit = f"{name_to_replace} unit {unit}"
 
                 all_lines = re.sub(
-                    rf"\b{name_to_search_unit}\b",
+                    rf'\b{name_to_search_unit}\b',
                     name_to_replace_unit,
                     all_lines
                 )
                 all_lines = re.sub(
-                    rf"\b{name_to_search}\b",
+                    rf'\b{name_to_search}\b',
                     name_to_replace,
                     all_lines
                 )
