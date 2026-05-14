@@ -1,13 +1,13 @@
 diff --git a/makefile-install.include b/makefile-install.include
-index 2f2bf9a..37463b0 100644
+index bf681f8..80fda92 100644
 --- a/makefile-install.include
 +++ b/makefile-install.include
 @@ -41,7 +41,7 @@ docker-build: docker-build-common
  	else \
  	echo "Current build differ from previous, running install!"; \
- 	docker run --cidfile cidfile --privileged $(REGISTRY)vr-$(VR_NAME):$(VERSION) --trace --install; \
--	docker commit --change='ENTRYPOINT ["/launch.py"]' $$(cat cidfile) $(REGISTRY)vr-$(VR_NAME):$(VERSION); \
-+	docker commit --change='ENTRYPOINT ["/launch.py", "--connection-mode=tc"]' $$(cat cidfile) $(REGISTRY)vr-$(VR_NAME):$(VERSION); \
+ 	docker run --cidfile cidfile --privileged $(REGISTRY)$(IMG_VENDOR)_$(IMG_NAME):$(VERSION) --trace --install; \
+-	docker commit --change='ENTRYPOINT ["/launch.py"]' $$(cat cidfile) $(REGISTRY)$(IMG_VENDOR)_$(IMG_NAME):$(VERSION); \
++	docker commit --change='ENTRYPOINT ["/launch.py", "--connection-mode=tc"]' $$(cat cidfile) $(REGISTRY)$(IMG_VENDOR)_$(IMG_NAME):$(VERSION); \
  	docker rm -f $$(cat cidfile); \
  	fi
- 	docker rmi -f $(REGISTRY)vr-$(VR_NAME):$(VERSION)-previous-build || true
+ 	docker rmi -f $(REGISTRY)$(IMG_VENDOR)_$(IMG_NAME):$(VERSION)-previous-build || true

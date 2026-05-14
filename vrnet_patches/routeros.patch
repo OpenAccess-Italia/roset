@@ -1,18 +1,18 @@
-diff --git a/routeros/docker/Dockerfile b/routeros/docker/Dockerfile
-index 72da4f0..01343fb 100644
---- a/routeros/docker/Dockerfile
-+++ b/routeros/docker/Dockerfile
-@@ -13,6 +13,7 @@ RUN apt-get update -qy \
-    qemu-kvm \
+diff --git a/mikrotik/routeros/docker/Dockerfile b/mikrotik/routeros/docker/Dockerfile
+index 9786d35..88f6335 100644
+--- a/mikrotik/routeros/docker/Dockerfile
++++ b/mikrotik/routeros/docker/Dockerfile
+@@ -17,6 +17,7 @@ RUN apt-get update -qy \
+    qemu-efi-aarch64 \
     tcpdump \
     ssh \
 +   sshpass \
     inetutils-ping \
     dnsutils \
     iptables \
-@@ -27,4 +28,4 @@ COPY *.py /
+@@ -35,4 +36,4 @@ COPY *.py /
  
  EXPOSE 22 161/udp 830 5000 5678 8291 10000-10099
- HEALTHCHECK CMD ["/healthcheck.py"]
--ENTRYPOINT ["/launch.py"]
-+ENTRYPOINT ["/launch.py", "--connection-mode=tc"]
+ HEALTHCHECK CMD ["uv", "run", "/healthcheck.py"]
+-ENTRYPOINT ["uv", "run", "/launch.py"]
++ENTRYPOINT ["uv", "run", "/launch.py", "--connection-mode=tc"]

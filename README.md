@@ -97,6 +97,18 @@ Currently, ROSE-T supports the following vendor routers:
 - **MikroTik RouterOS** (>=7.16) through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container.
   - We use a custom version of the VM, which `.patch` files are located in the `vrnet_patches` folder.
   - **Note**: Currently, we only support  __non-terse__ configurations (i.e., do not `export` with the `terse` parameter).
+- **FRRouting (FRR)** (>=9.1) using the official [kathara/frr](https://github.com/KatharaFramework/kathara-docker) Docker image.
+  - FRR can be used as the candidate router configuration.
+  - The candidate router runs the original FRR configuration, while other ASes are emulated using FRR.
+  - **Note**: The configuration must be in standard FRR format (like the output of show running-config in vtysh).
+  Custom iptables configuration for FRR candidate
+
+  When using FRR as the candidate router, you can provide custom iptables rules to be applied after the router starts. This is useful for testing anti-spoofing configurations.
+
+  Create a file (default path: `resources/iptables_config.txt`) with your iptables commands:
+
+  The script will be executed after FRR daemons are started. You can change the default path by modifying the `IPTABLES_CONFIG_PATH` constant in `src/rs4lk/configuration/vendor/frr_configuration.py`.
+
 
 We plan to extend the support to additional vendors in the future.
 
@@ -168,3 +180,25 @@ The test can take up to few minutes, depending on your hardware. Ensure that you
 We plan to add a configuration parameter to specify the image name.
 If your image name differs, you have to manually change it into the corresponding `src/rs4lk/configuration/vendor/<os_name>_configuration.py` file, by modifying the `get_image` method of the class.
 
+### Using a local relationships file instead of RIPE DB
+
+For testing or lab environments where RIPE DB relationships are not available, you can provide a local relationships file:
+
+```
+cd src
+sudo -E PATH=$PATH python3 test.py --config_path <CONFIGURATION_PATH> --config_syntax Frr --relationships ../resources/test_relationships.json
+```
+
+The relationships file must be in JSON format:
+```json
+{
+  "AS101": {
+    "AS100": "peer",
+    "AS102": "peer",
+    "AS103": "customer",
+    "AS104": "provider"
+  }
+}
+```
+
+Valid relationship values are: `provider`, `customer`, `peer`.

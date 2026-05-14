@@ -52,15 +52,14 @@ class RouterosConfiguration(VendorConfiguration):
         self.iface_to_iface_idx[iface.name] = last_iface_idx[0] - 1
 
         logging.debug(f"Interface `{iface.original_name}` remapped into `{iface.name}`.")
-
+    
     def get_image(self) -> str:
-        return 'vrnetlab/vr-routeros:7.16rc4'
+        return 'vrnetlab/mikrotik_routeros:7.16.1'
 
     def apply_to_network_scenario(self, net_scenario: Lab) -> None:
-        net_scenario.add_option('privileged_machines', True)
-
         candidate_name = f"as{self.local_as}"
         candidate_router = net_scenario.get_machine(candidate_name)
+        candidate_router.add_meta('privileged', True)
         candidate_router.add_meta('image', self.get_image())
         # Allocate slots for the interfaces
         candidate_router.add_meta('env', f"CLAB_INTFS={self.SUPPORTED_IFACES - 1}")

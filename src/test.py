@@ -13,6 +13,7 @@ from rs4lk.model.topology import Topology
 from rs4lk.mrt.table_dump import TableDump
 from rs4lk.network_scenario.network_scenario_manager import NetworkScenarioManager
 from rs4lk.parser.grammar_parser import GrammarParser
+from rs4lk.webhooks.ripe_db import RipeDb
 
 
 def parse_args():
@@ -20,6 +21,7 @@ def parse_args():
     parser.add_argument('--config_path', type=str, required=True)
     parser.add_argument('--config_syntax', type=str, required=True)
     parser.add_argument('--rib_dump', type=str, required=False, default=DEFAULT_RIB)
+    parser.add_argument('--relationships', type=str, required=False, default=None)
     parser.add_argument('--exclude_checks', type=str, required=False, default="")
     parser.add_argument('--result-level', type=int, required=False, default=WARNING)
 
@@ -28,6 +30,10 @@ def parse_args():
 
 def main(args):
     random.seed(3000)
+
+    if args.relationships:
+        RipeDb.reset_instance()
+        RipeDb.get_instance().load_local_relationships(args.relationships)
 
     grammar_parser = GrammarParser()
     vendor_config = grammar_parser.parse(args.config_path, args.config_syntax)
@@ -71,7 +77,7 @@ def main(args):
     # 0=Configuration is compliant, 1=Configuration is not compliant
     exit(int(all_passed))
 
-
+# sudo ../.venv/bin/python3 test.py --config_path /home/lorenzo/Documenti/TesiMagistrale/LabEsempio/FirstExample/customer_frr.conf --config_syntax Frr --rib_dump /home/lorenzo/Documenti/TesiMagistrale/myROSE-T/roset/resources/first_example_rib.db
 if __name__ == "__main__":
     set_logging()
 

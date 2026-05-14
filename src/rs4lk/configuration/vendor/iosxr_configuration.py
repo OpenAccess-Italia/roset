@@ -64,10 +64,9 @@ class IosxrConfiguration(VendorConfiguration):
         return 'ios-xr/xrd-control-plane:7.9.2'
 
     def apply_to_network_scenario(self, net_scenario: Lab) -> None:
-        net_scenario.add_option('privileged_machines', True)
-
         candidate_name = f"as{self.local_as}"
         candidate_router = net_scenario.get_machine(candidate_name)
+        candidate_router.add_meta('privileged', True)
         candidate_router.add_meta('image', self.get_image())
         candidate_router.add_meta('ipv6', True)
 

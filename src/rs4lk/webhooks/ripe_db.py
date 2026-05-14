@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 
@@ -5,7 +6,7 @@ import requests
 
 
 class RipeDb:
-    __slots__ = ['_as_rules_cache']
+    __slots__ = ['_as_rules_cache', '_local_relationships']
 
     URL: str = 'https://rest.db.ripe.net/search.txt?query-string=AS%d&flags=no-referenced&flags=no-irt&source=RIPE'
     RPSL_REGEX = re.compile(r"^(?P<key>.*):\s+(?P<value>.*)$")
@@ -19,13 +20,50 @@ class RipeDb:
 
         return RipeDb.__instance
 
+    @staticmethod
+    def reset_instance() -> None:
+        RipeDb.__instance = None
+
     def __init__(self) -> None:
         if RipeDb.__instance is not None:
             raise InstantiationError("This class is a singleton!")
         else:
             self._as_rules_cache: dict[int, (list[str], list[str])] = {}
+            self._local_relationships: dict = {}
 
             RipeDb.__instance = self
+
+    def load_local_relationships(self, file_path: str) -> None:
+        logging.info(f"Loading local relationships from `{file_path}`...")
+        try:
+            with open(file_path, 'r') as f:
+                self._local_relationships = json.load(f)
+        except FileNotFoundError:
+            logging.warning(f"Local relationships file not found: {file_path}")
+            self._local_relationships = {}
+        except json.JSONDecodeError as e:
+            logging.error(f"Invalid JSON in local relationships file: {e}")
+            self._local_relationships = {}
+
+    def get_local_relationship(self, local_as: int, remote_as: int) -> int | None:
+        as_key = f"AS{local_as}"
+        if as_key not in self._local_relationships:
+            return None
+        
+        relationships = self._local_relationships[as_key]
+        remote_key = f"AS{remote_as}"
+        
+        if remote_key not in relationships:
+            return None
+        
+        rel_str = relationships[remote_key].lower()
+        if rel_str == "provider":
+            return 1
+        elif rel_str == "customer":
+            return 2
+        elif rel_str == "peer":
+            return 0
+        return None
 
     def get_local_as_rules(self, as_num: int) -> (list[str], list[str]):
         if as_num in self._as_rules_cache:

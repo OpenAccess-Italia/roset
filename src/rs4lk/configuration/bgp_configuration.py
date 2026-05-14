@@ -74,7 +74,7 @@ class BgpConfiguration(ConfigurationApplier):
     def _configure_device(self, device: Machine, bgp_router: BgpRouter) -> None:
         logging.info(f"Configuring BGP in device `{device.name}`...")
 
-        device.add_meta('image', 'kathara/frr')
+        device.add_meta('image', 'kathara/frr:9')
 
         device.create_file_from_list(
             ['zebra=yes', 'bgpd=yes'], '/etc/frr/daemons'

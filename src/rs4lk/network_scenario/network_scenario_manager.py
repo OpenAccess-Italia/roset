@@ -88,10 +88,36 @@ class NetworkScenarioManager:
 
         logging.info(f"Starting candidate device `{candidate_device.name}`...")
         Kathara.get_instance().deploy_machine(candidate_device)
+        
+        if hasattr(vendor_config, 'command_start_daemon'):
+            logging.info(f"Starting vendor daemon for `{candidate_device.name}`...")
+            exec_output = Kathara.get_instance().exec(
+                machine_name=candidate_device.name,
+                command=shlex.split(vendor_config.command_start_daemon()),
+                lab_name=net_scenario.name
+            )
+            try:
+                while True:
+                    try:
+                        stdout, stderr = next(exec_output)
+                        stdout = stdout.decode('utf-8') if stdout else ""
+                        stderr = stderr.decode('utf-8') if stderr else ""
+                        logging.debug(f"[DAEMON START] stdout='{stdout}', stderr='{stderr}'")
+                    except StopIteration:
+                        break
+            except StopIteration:
+                pass
+        
         logging.info(f"Waiting candidate device `{candidate_device.name}` startup...")
 
         is_running = False
+        attempts = 0
+        max_attempts = 60
+        start_time = time.time()
         while not is_running:
+            if attempts >= max_attempts:
+                raise NetworkScenarioError(f"Candidate device `{candidate_device.name}` failed to start after {max_attempts} attempts ({(time.time() - start_time):.0f}s)")
+            
             exec_output = Kathara.get_instance().exec(
                 machine_name=candidate_device.name,
                 command=shlex.split(vendor_config.command_healthcheck()),
@@ -99,12 +125,38 @@ class NetworkScenarioManager:
             )
 
             try:
-                (stdout, _) = next(exec_output)
-                stdout = stdout.decode('utf-8')
+                (stdout, stderr) = next(exec_output)
+                stdout = stdout.decode('utf-8') if stdout else ""
+                stderr = stderr.decode('utf-8') if stderr else ""
+                attempts += 1
+                logging.debug(f"[HEALTHCHECK] attempt {attempts}: stdout='{stdout}', stderr='{stderr}'")
                 is_running = vendor_config.check_health(stdout)
             except StopIteration:
+                attempts += 1
+                logging.debug(f"[HEALTHCHECK] attempt {attempts}: no output, sleeping...")
                 time.sleep(5)
                 pass
+        
+        if hasattr(vendor_config, 'get_post_start_commands'):
+            post_commands = vendor_config.get_post_start_commands()
+            for cmd in post_commands:
+                logging.info(f"Executing post-start command: {cmd}")
+                exec_output = Kathara.get_instance().exec(
+                    machine_name=candidate_device.name,
+                    command=shlex.split(cmd),
+                    lab_name=net_scenario.name
+                )
+                try:
+                    while True:
+                        try:
+                            stdout, stderr = next(exec_output)
+                            stdout = stdout.decode('utf-8') if stdout else ""
+                            stderr = stderr.decode('utf-8') if stderr else ""
+                            logging.debug(f"[POST-START] stdout='{stdout}', stderr='{stderr}'")
+                        except StopIteration:
+                            break
+                except StopIteration:
+                    pass
 
     def start_other_devices(self, net_scenario: Lab, vendor_config: VendorConfiguration) -> None:
         logging.info("Starting all other devices...")
