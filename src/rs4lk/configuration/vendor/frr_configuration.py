@@ -13,10 +13,9 @@ class FrrConfiguration(VendorConfiguration):
     CONFIG_FILE_PATH: str = "/etc/frr/frr.conf"
     VTYSH_COMMAND: str = "vtysh -c \"{command}\""
     PREFIX_REGEX: re.Pattern = re.compile(r"(\d+\.\d+\.\d+\.\d+/\d+)")
-    FIREWALL_CONFIG_PATH: str = "/home/lorenzo/Documenti/TesiMagistrale/myROSE-T/roset/resources/firewall_config.txt"
 
     def get_image(self) -> str:
-        return 'kathara/frr:9'
+        return self.docker_image or 'kathara/frr:9'
 
     def _remap_interfaces(self) -> None:
         idx = 0
@@ -30,8 +29,9 @@ class FrrConfiguration(VendorConfiguration):
                 phy_idx = self.iface_to_iface_idx[iface.phy.name]
                 self.iface_to_iface_idx[iface.name] = phy_idx
 
-    def apply_to_network_scenario(self, net_scenario: Lab) -> None:
-        candidate_name = f"as{self.local_as}"
+    def apply_to_network_scenario(self, net_scenario: Lab, machine_name: str | None = None,
+                              startup_script_path: str | None = None) -> None:
+        candidate_name = machine_name or f"as{self.local_as}"
         candidate_router = net_scenario.get_machine(candidate_name)
         candidate_router.add_meta('privileged', True)
         candidate_router.add_meta('image', self.get_image())
@@ -63,17 +63,16 @@ class FrrConfiguration(VendorConfiguration):
         )
         candidate_router.add_meta('post_start', '/bin/bash /etc/supervisor/startup.sh')
         
-        self._apply_firewall_config(candidate_router)
+        self._apply_firewall_config(candidate_router, startup_script_path)
     
     def get_post_start_commands(self) -> list[str]:
         commands = []
         
-        if os.path.exists(self.FIREWALL_CONFIG_PATH):
-            commands.append('/bin/bash /etc/supervisor/firewall.sh')
+        commands.append('/bin/bash /etc/supervisor/startup_script.sh')
         
         return commands
 
-    # Inutilizzato, ma lasciato per coerenza con le altre configurazioni
+    # Unused, but kept for consistency with the other configurations.
     def get_lines(self) -> list[str]:
         cleaned = []
         skip_until_next_bang = False
@@ -188,32 +187,33 @@ class FrrConfiguration(VendorConfiguration):
                     continue
         return bgp_routes
 
-    def _apply_firewall_config(self, candidate_router) -> None:
-        if not os.path.exists(self.FIREWALL_CONFIG_PATH):
-            logging.debug(f"Firewall config file not found: {self.FIREWALL_CONFIG_PATH}")
+    def _apply_firewall_config(self, candidate_router, startup_script_path: str | None = None) -> None:
+        if not startup_script_path:
+            logging.debug("No startup script specified, skipping")
             return
         
-        logging.info(f"Applying custom Firewall config from `{self.FIREWALL_CONFIG_PATH}`...")
+        if not os.path.exists(startup_script_path):
+            logging.debug(f"Startup script not found: {startup_script_path}")
+            return
         
-        with open(self.FIREWALL_CONFIG_PATH, 'r') as f:
+        logging.info(f"Applying startup script from `{startup_script_path}`...")
+        
+        with open(startup_script_path, 'r') as f:
             lines = f.read().strip().split('\n')
         
-        startup_script = []
-        startup_script.append("#!/bin/bash")
-        startup_script.append("")
+        startup_content = []
+        startup_content.append("#!/bin/bash")
+        startup_content.append("")
         
         for line in lines:
             line = line.strip()
             if not line or line.startswith('#'):
                 continue
-            startup_script.append(line)
+            startup_content.append(line)
         
         candidate_router.create_file_from_string(
-            "\n".join(startup_script) + "\n",
-            "/etc/supervisor/firewall.sh"
+            "\n".join(startup_content) + "\n",
+            "/etc/supervisor/startup_script.sh"
         )
         
-        candidate_router.create_file_from_string(
-            "\n".join(startup_script) + "\n",
-            "/etc/supervisor/firewall.sh"
-        )
+        candidate_router.add_meta('post_start', '/bin/bash /etc/supervisor/startup_script.sh')

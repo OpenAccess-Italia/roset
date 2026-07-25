@@ -68,16 +68,24 @@ def get_neighbour_bgp_networks(device: Machine,
         while True:
             (stdout, _) = next(exec_output)
             stdout = stdout.decode('utf-8') if stdout else ""
-
             if stdout:
                 bgp_nets += stdout
     except StopIteration:
         pass
+
+    if not bgp_nets.strip():
+        logging.warning(f"Empty BGP output for neighbor {neighbour_ip}, returning empty set.")
+        return set()
+
     bgp_nets = json.loads(bgp_nets)
+
+    if 'routes' not in bgp_nets:
+        logging.warning(f"No 'routes' key in BGP output for neighbor {neighbour_ip}, returning empty set.")
+        return set()
 
     return {
         ipaddress.ip_network(net) for net, routes in bgp_nets['routes'].items()
-        if routes and any([x['valid'] and x['bestpath'] for x in routes])
+        if routes and any([x['valid'] and x.get('bestpath', False) for x in routes])
     }
 
 

@@ -136,6 +136,7 @@ resources/bogons-*.txt
 snapshots/*
 
 .DS_Store
+.vscode 
 
 resources/*.conf
 resources/*.json
@@ -143,5 +144,10 @@ resources/*.rsc
 resources/*.txt
 vrnetlab/*
 *.mrt
-src/test_*
 docs/*
+test_as
+more_routers
+single_router
+debug_topology.py
+test_parser.py
+run_all_tests.sh

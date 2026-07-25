@@ -36,7 +36,7 @@ class BgpSession:
 
 
 class BgpPeering:
-    __slots__ = ['session', 'local_ip', 'remote_ip', 'group']
+    __slots__ = ['session', 'local_ip', 'remote_ip', 'group', 'iface_idx']
 
     def __init__(self, session: BgpSession, local_ip: str | None, remote_ip: str, group: str | None = None) -> None:
         self.session: BgpSession = session
@@ -46,6 +46,7 @@ class BgpPeering:
             if local_ip is not None else None
         self.remote_ip: ipaddress.IPv4Address | ipaddress.IPv6Address = ipaddress.ip_address(remote_ip)
         self.group: str | None = group
+        self.iface_idx: int = -1
 
     def __repr__(self) -> str:
         return f"{self.group}: local={self.local_ip} => remote={self.remote_ip}"

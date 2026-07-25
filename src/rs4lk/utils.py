@@ -1,6 +1,9 @@
 import base64
 import hashlib
+import logging
 import re
+import sys
+import time
 
 
 # General Helpers
@@ -26,3 +29,41 @@ def aggregate_networks(networks: set) -> set:
                 aggregated_networks.remove(network)
 
     return aggregated_networks
+
+
+class Timer:
+    _marks: list[tuple[str, float]] = []
+
+    @classmethod
+    def tick(cls, label: str) -> None:
+        cls._marks.append((label, time.time()))
+
+    @classmethod
+    def print_summary(cls) -> None:
+        sys.stdout.write(cls.format_summary())
+
+    @classmethod
+    def format_summary(cls) -> str:
+        if not cls._marks:
+            return ""
+
+        start = cls._marks[0][1]
+        total = cls._marks[-1][1] - start
+
+        name_w = max(len(m[0]) for m in cls._marks) + 2
+        sep = "=" * (name_w + 17)
+        out = [f"\n{sep}", f"  {'PHASE':<{name_w}}  {'DURATION':>9}", sep]
+
+        prev_ts = start
+        for label, ts in cls._marks:
+            dur = ts - prev_ts
+            out.append(f"  {label:<{name_w}}  {dur:>7.2f}s")
+            prev_ts = ts
+
+        out.append(sep)
+        out.append(f"  {'TOTAL':<{name_w}}  {total:>7.2f}s\n")
+        return "\n".join(out) + "\n"
+
+    @classmethod
+    def reset(cls) -> None:
+        cls._marks.clear()

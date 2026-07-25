@@ -77,7 +77,6 @@ def main(args):
     # 0=Configuration is compliant, 1=Configuration is not compliant
     exit(int(all_passed))
 
-# sudo ../.venv/bin/python3 test.py --config_path /home/lorenzo/Documenti/TesiMagistrale/LabEsempio/FirstExample/customer_frr.conf --config_syntax Frr --rib_dump /home/lorenzo/Documenti/TesiMagistrale/myROSE-T/roset/resources/first_example_rib.db
 if __name__ == "__main__":
     set_logging()
 

@@ -43,12 +43,22 @@ class NetworkScenarioManager:
 
                                 startup.write(f"ip addr add {ip} dev {iface_name}\n")
 
+        # Write static routes for candidate routers
+        for as_num, node in topology.all():
+            if isinstance(node, BgpRouter) and node.candidate and node.static_routes:
+                device = net_scenario.get_machine(node.machine_name)
+                if device:
+                    with device.lab.fs.open(f"{device.name}.startup", 'a+') as startup:
+                        for route in node.static_routes:
+                            startup.write(f"{route}\n")
+                            logging.info(f"Added route to {device.name}: {route}")
+
         return net_scenario
 
     def _build_device(self, net_scenario: Lab, node: Node) -> Machine:
-        device_name = node.name
+        device_name = node.machine_name
 
-        if not net_scenario.has_machine(node.name):
+        if not net_scenario.has_machine(device_name):
             device = net_scenario.new_machine(device_name)
             logging.info(f"Device `{device_name}` created.")
 
@@ -72,7 +82,7 @@ class NetworkScenarioManager:
                              f"interface idx={iface_idx}.")
 
                 for neighbour in neighbours.values():
-                    logging.info(f"Connecting `{device_name}` with neighbour `{neighbour.neighbour.name}` "
+                    logging.info(f"Connecting `{device_name}` with neighbour `{neighbour.neighbour.machine_name}` "
                                  f"on collision domain `{cd}` with "
                                  f"interface idx={iface_idx}.")
 
@@ -83,12 +93,42 @@ class NetworkScenarioManager:
             return net_scenario.get_machine(device_name)
 
     @staticmethod
-    def start_candidate_device(net_scenario: Lab, vendor_config: VendorConfiguration) -> None:
-        candidate_device = net_scenario.machines[f"as{vendor_config.local_as}"]
+    def start_candidate_device(net_scenario: Lab, vendor_config: VendorConfiguration | None = None,
+                                 topology: Topology | None = None) -> None:
+        if topology and topology._as_candidate:
+            candidate_routers = topology.get_candidate_routers()
+            for router in candidate_routers:
+                candidate_device = net_scenario.machines.get(router.machine_name)
+                if not candidate_device:
+                    logging.warning(f"Candidate device `{router.machine_name}` not found in net_scenario")
+                    continue
 
+                vendor_cfg = topology.get_candidate_router_config(router.machine_name)
+
+                logging.info(f"Starting candidate device `{candidate_device.name}`...")
+                Kathara.get_instance().deploy_machine(candidate_device)
+
+                if vendor_cfg and hasattr(vendor_cfg, 'command_start_daemon'):
+                    NetworkScenarioManager._start_vendor_daemon(candidate_device, vendor_cfg, net_scenario)
+        else:
+            if vendor_config is None:
+                raise NetworkScenarioError("vendor_config is required when not using topology")
+
+            candidate_device = net_scenario.machines[f"as{vendor_config.local_as}"]
+            NetworkScenarioManager._start_single_candidate(candidate_device, vendor_config, net_scenario)
+
+    @staticmethod
+    def _start_single_candidate(candidate_device: Machine, vendor_config: VendorConfiguration, net_scenario: Lab) -> None:
         logging.info(f"Starting candidate device `{candidate_device.name}`...")
         Kathara.get_instance().deploy_machine(candidate_device)
-        
+
+        if hasattr(vendor_config, 'command_start_daemon'):
+            NetworkScenarioManager._start_vendor_daemon(candidate_device, vendor_config, net_scenario)
+
+    @staticmethod
+    def _start_vendor_daemon(candidate_device: Machine, vendor_config: VendorConfiguration, net_scenario: Lab) -> None:
+        logging.info(f"Starting vendor daemon for `{candidate_device.name}`...")
+
         if hasattr(vendor_config, 'command_start_daemon'):
             logging.info(f"Starting vendor daemon for `{candidate_device.name}`...")
             exec_output = Kathara.get_instance().exec(
@@ -158,10 +198,18 @@ class NetworkScenarioManager:
                 except StopIteration:
                     pass
 
-    def start_other_devices(self, net_scenario: Lab, vendor_config: VendorConfiguration) -> None:
+    def start_other_devices(self, net_scenario: Lab, vendor_config: VendorConfiguration | None = None,
+                         topology: Topology | None = None) -> None:
         logging.info("Starting all other devices...")
 
-        all_except_candidate = {x for x in net_scenario.machines.keys() if x != f"as{vendor_config.local_as}"}
+        if topology and topology._as_candidate:
+            candidate_names = {r.machine_name for r in topology.get_candidate_routers()}
+            all_except_candidate = {x for x in net_scenario.machines.keys() if x not in candidate_names}
+        else:
+            if vendor_config is None:
+                raise NetworkScenarioError("vendor_config is required when not using topology")
+            all_except_candidate = {x for x in net_scenario.machines.keys() if x != f"as{vendor_config.local_as}"}
+
         Kathara.get_instance().deploy_lab(net_scenario, selected_machines=all_except_candidate)
 
         not_healthy_routers = [x for x in all_except_candidate if "_client" not in x]

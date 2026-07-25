@@ -66,7 +66,13 @@ class BgpConfiguration(ConfigurationApplier):
             if not isinstance(bgp_router, BgpRouter) or bgp_router.relationship is None:
                 continue
 
-            router_name = bgp_router.name
+            if bgp_router.is_candidate():
+                continue
+
+            router_name = bgp_router.machine_name
+            if not net_scenario.has_machine(router_name):
+                continue
+
             router: Machine = net_scenario.get_machine(router_name)
 
             self._configure_device(router, bgp_router)

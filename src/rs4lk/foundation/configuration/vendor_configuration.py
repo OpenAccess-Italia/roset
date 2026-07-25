@@ -14,9 +14,7 @@ from ...utils import urlsafe_hash
 
 
 class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParser, ABC):
-    __slots__ = ['name', 'path', 'interfaces', 'local_as', 'sessions', '_lines', 'iface_to_iface_idx']
-
-    CONFIG_FILE_PATH: str = "/config/startup-config.cfg"
+    __slots__ = ['name', 'path', 'interfaces', 'local_as', 'sessions', '_lines', 'iface_to_iface_idx', 'docker_image']
 
     def __init__(self) -> None:
         self.name: str | None = None
@@ -24,6 +22,7 @@ class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParse
         self.interfaces: dict[str, Interface] | None = {}
         self.local_as: int = 0
         self.sessions: dict[int, BgpSession] | None = {}
+        self.docker_image: str | None = None
 
         self._lines: list[str] | None = None
         self.iface_to_iface_idx: SortedDict[str, int] = SortedDict({})
@@ -66,8 +65,8 @@ class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParse
             logging.warning(f"Skipping session with AS{remote_as} is in reserved range 64000-131071.")
             return False
         if self.local_as == remote_as:
-            logging.warning(f"Skipping session with AS{remote_as} is a iBGP peering.")
-            return False
+            logging.warning(f"Not skipping session with AS{remote_as} but is a iBGP peering.")
+            return True
 
         return True
 
@@ -82,6 +81,8 @@ class VendorConfiguration(ConfigurationApplier, CommandsMixin, VendorFormatParse
                     continue
 
                 peering.local_ip = local_ip
+                iface_name = iface.phy.name if isinstance(iface, VlanInterface) else iface.name
+                peering.iface_idx = self.iface_to_iface_idx[iface_name]
 
             session.iface = iface
 

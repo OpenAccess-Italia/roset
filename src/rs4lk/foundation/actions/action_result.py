@@ -35,3 +35,14 @@ class ActionResult:
                 logging.success(reason_str)
             elif status == ERROR:
                 logging.error(reason_str)
+
+    def format_lines(self, level: int) -> list[str]:
+        labels = {WARNING: "WARNING", SUCCESS: "SUCCESS", ERROR: "ERROR"}
+        lines = []
+        for i, status in enumerate(self.statuses):
+            if status > level:
+                continue
+            msg = f"[{self.action.display_name()}] {self.reasons[i]}" if self.reasons[i] else \
+                f"[{self.action.display_name()}] " + ("Passed" if status else "Failed") + " (No Message)."
+            lines.append(f"{labels[status]}: {msg}")
+        return lines

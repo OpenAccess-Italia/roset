@@ -17,7 +17,7 @@ Specifically, ROSE-T performs the check for validating the following actions of 
 - Action 2: **Anti-Spoofing** -> Prevent packets with spoofed source IP address from entering or leaving the network.
 - Action 4: **Global Information** -> Network operators must publicly document their routing policies, ASNs and prefixes.
 
-Action 3 cannot be validated automatically since it implies to verify contact information of the candidate.  
+Action 3 cannot be validated automatically since it implies to verify contact information of the candidate.
 
 It leverages __[Kathará](https://github.com/KatharaFramework/Kathara)__ to emulate a virtual network scenario in which the router **realistically interacts** with providers and customers.
 
@@ -49,19 +49,19 @@ In this step, ROSE-T parses the required information from the vendor configurati
 Mainly, it extracts interfaces' information (names and IP addresses) and BGP sessions.
 
 ### Step 3: Analyze the Configuration
-In this step ROSE-T analyzes the parsed configuration to reconstruct the neighbours relationships. 
-It integrates the information from the IRRs and a RIB dump to infer the topology and understand the relationships. 
+In this step ROSE-T analyzes the parsed configuration to reconstruct the neighbours relationships.
+It integrates the information from the IRRs and a RIB dump to infer the topology and understand the relationships.
 
 ### Step 4: Emulate the Minimal Network Topology
-In this step the system uses the computed information to build a minimal network topology to be emulated. 
-To power the emulation, ROSE-T leverages on Kathará. The candidate router will use the original configuration/vendor software, while other ASes are emulated as a single router running FRRouting. 
+In this step the system uses the computed information to build a minimal network topology to be emulated.
+To power the emulation, ROSE-T leverages on Kathará. The candidate router will use the original configuration/vendor software, while other ASes are emulated as a single router running FRRouting.
 
 ### Step 5: Verify Compliance to MANRS
-In this step the system leverages on the emulated environment to verify Action 3 and Action 4 of MANRS. 
+In this step the system leverages on the emulated environment to verify Action 3 and Action 4 of MANRS.
 
 **Filtering (Action 1): "Ensure the correctness of your own announcements and those from your customers to adjacent networks"**
 
-For each customer: 
+For each customer:
   1. Select non-overlapping subnet and announce it to the candidate router.
   2. Wait that BGP converges.
   3. Check the provider's received routes using the FRR control plane.
@@ -76,15 +76,15 @@ For each provider:
   1. The system creates a client in the provider's AS.
   2. Assign IPs (v4/v6) to each created client.
   3. Send the spoofed ICMP packet.
-  4. Check if the spoofed packet leaves the candidate AS. 
-  
+  4. Check if the spoofed packet leaves the candidate AS.
+
 <p align="center">
     <img src="images/spoofing.png" alt="ROSE-T Anti-Spoofing Check" width="50%" />
 </p>
-  
+
 ## Supported Vendor Routers
 Currently, ROSE-T supports the following vendor routers:
-- **Juniper VMX** (>=18.2) through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container. 
+- **Juniper VMX** (>=18.2) through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container.
   - We use a custom version of the VM, which `.patch` files are located in the `vrnet_patches` folder.
   - **Note**: Currently, we only support __flat__ configurations.
 - **Cisco IOS XR** (>=7.9.2) using the official [XRd Control Plane](https://software.cisco.com/download/home/286331236/type/280805694) Docker image.
@@ -96,27 +96,22 @@ Currently, ROSE-T supports the following vendor routers:
       ```
 - **MikroTik RouterOS** (>=7.16) through a [hellt/vrnetlab](https://github.com/hellt/vrnetlab) VM embedded in a Docker container.
   - We use a custom version of the VM, which `.patch` files are located in the `vrnet_patches` folder.
-  - **Note**: Currently, we only support  __non-terse__ configurations (i.e., do not `export` with the `terse` parameter).
+  - **Note**: Currently, we only support __non-terse__ configurations (i.e., do not `export` with the `terse` parameter).
 - **FRRouting (FRR)** (>=9.1) using the official [kathara/frr](https://github.com/KatharaFramework/kathara-docker) Docker image.
   - FRR can be used as the candidate router configuration.
   - The candidate router runs the original FRR configuration, while other ASes are emulated using FRR.
-  - **Note**: The configuration must be in standard FRR format (like the output of show running-config in vtysh).
-  Custom iptables configuration for FRR candidate
-
-  When using FRR as the candidate router, you can provide custom iptables rules to be applied after the router starts. This is useful for testing anti-spoofing configurations.
-
-  Create a file (default path: `resources/iptables_config.txt`) with your iptables commands:
-
-  The script will be executed after FRR daemons are started. You can change the default path by modifying the `IPTABLES_CONFIG_PATH` constant in `src/rs4lk/configuration/vendor/frr_configuration.py`.
-
+  - **Note**: The configuration must be in standard FRR format (like the output of `show running-config` in vtysh).
+  - You can optionally provide a startup script to be executed after FRR daemons start. This is useful for applying custom iptables rules for anti-spoofing testing. Specify the script path in the `startup_script_path` field of the candidate JSON file.
 
 We plan to extend the support to additional vendors in the future.
 
 ## Hands-on
 
+### Requirements
+
 1. Docker
 2. Kathará
-3. Python 3.10 or 3.11
+3. Python 3.10 or higher
 
 ### Pre-Requisites
 
@@ -125,15 +120,87 @@ We plan to extend the support to additional vendors in the future.
 python3 -m pip install -r src/requirements.txt
 ```
 
-2. You need an updated a MRT RIB dump downloaded from a Route Collector, for example you can download the latest dump from [RRC00](https://data.ris.ripe.net/rrc00/).
+2. You need an updated MRT RIB dump. You can download the latest dump from [RRC00](https://data.ris.ripe.net/rrc00/) or generate one from an existing Kathará lab.
 Now, enter the `resources` directory, and run the `load_mrt.py` script:
 ```
 cd resources
 python3 load_mrt.py <TABLE_DUMP_RIB_FILE> <OUTPUT_FILE.db>
 ```
-The command requires two positional parameters: 
-- `<TABLE_DUMP_RIB_FILE>` is the RIB dump in `.gz` format. 
+The command requires two positional parameters:
+- `<TABLE_DUMP_RIB_FILE>` is the RIB dump in `.gz` format.
 - `<OUTPUT_FILE.db>` is the name of the output SQLite3 database (stored in the `resources` directory). By default, the name is `rib_latest.db`.
+
+### Candidate Configuration File
+
+ROSE-T takes as input a JSON file describing the candidate AS. The file specifies the ASN, the relationships file, the RIB dump, and one or more routers belonging to the candidate AS.
+
+```json
+{
+  "local_as": 101,
+  "relationships": "relationships.json",
+  "rib_dump": "rib.db",
+  "routers": [
+    {
+      "name": "c1",
+      "vendor": "frr",
+      "config_path": "c1.frr",
+      "startup_script_path": "c1_startup.txt"
+    },
+    {
+      "name": "c2",
+      "vendor": "frr",
+      "config_path": "c2.frr"
+    }
+  ]
+}
+```
+
+The supported fields are:
+- `local_as`: The ASN of the candidate Autonomous System.
+- `relationships`: Path to the relationships JSON file (see below).
+- `rib_dump`: Path to the SQLite3 database generated by `load_mrt.py`.
+- `routers`: A list of routers belonging to the candidate AS. Each router entry supports the following fields:
+  - `name`: A unique name for the router within the candidate AS.
+  - `vendor`: The vendor of the router. Supported values are `frr`, `junos`, `iosxr`, `routeros`.
+  - `docker_image`: Name of the docker image to use
+  - `config_path`: Path to the router configuration file.
+  - `startup_script_path` *(optional)*: Path to a startup script executed after the router starts. Useful for applying custom iptables rules.
+
+A typical candidate directory looks like this:
+
+```
+CandidateAS/
+├── c1.frr
+├── c1_startup.txt
+├── c2.frr
+├── c3.frr
+├── candidate.json
+├── relationships.json
+└── rib.db
+```
+
+### Run a Test
+
+To run the verification:
+```bash
+sudo ../.venv/bin/python3 test_as_candidate.py \
+    --as_config <PATH_TO_CANDIDATE_JSON> \
+    --file <PATH_TO_OUTPUT_FILE>
+```
+
+The supported parameters are:
+- `--as_config` / `-c` *(required)*: Path to the candidate JSON configuration file.
+- `--file` *(optional)*: Path to the output file where results will be written.
+- `--rib_dump` *(optional)*: Path to the SQLite3 RIB dump database. Overrides the value specified in the candidate JSON. Defaults to `resources/rib_latest.db` if not specified in either place.
+- `--relationships` *(optional)*: Path to a local relationships JSON file. Overrides the value specified in the candidate JSON.
+- `--exclude_checks` *(optional)*: Comma-separated list of checks to skip. Supported values are `information`, `spoofing`, and `leak`.
+- `--result-level` *(optional)*: Minimum result level to include in the output. Supported values are `WARNING`, `SUCCESS`, and `ERROR`.
+- `--name` *(optional)*: Name for the network scenario. Defaults to `as_<local_as>`.
+- `--debug` *(optional)*: Enable debug logging output.
+
+The test can take up to a few minutes, depending on your hardware. Ensure that you have a good amount of RAM and nested virtualization enabled.
+
+**NOTE**: ROSE-T works only on Docker on Linux or WSL2, and it is compatible only with the `amd64` architecture (Apple Silicon is not supported).
 
 ## Build the patched `vrnetlab` images
 
@@ -152,44 +219,12 @@ Where `<os_name>.patch` is the name of the patch file.
 
 3. Now, to build the image, copy the VM file provided by the vendor (e.g., `.tar.gz` for Juniper, or `.vmdk` for RouterOS) inside the corresponding OS folder (e.g. `vmx`) and run `make`. The process will take few minutes.
 
-## Run a Test
-
-### Action 1 and 2 verification
-To run the verification of Action 1 and 2, the simplest command is:
-```
-cd src
-sudo -E PATH=$PATH python3 test.py --config_path <CONFIGURATION_PATH> --config_syntax <CONFIGURATION_SYNTAX>
-```
-
-The supported parameters are:
-- `--config_path`: Path to the configuration to test.
-- `--config_syntax`: The syntax of the provided configuration. Supported values are `Junos` (for VMX), `IosXr` (for Cisco IOS XR), `Routeros` (for MikroTik RouterOS).
-- `--rib_dump`: Path pointing to the `.db` SQLite3 database containing the parsed MRT RIB dump. By default, the value is `resources/rib_latest.db`.
-- `--exclude_checks`: A comma separated string to exclude some MANRS checks. Supported values are `information`, `spoofing`, and `leak`.
-- `--result-level`: The output of the validation will report both successful checks, warnings and errors. You can change the level of output with this parameters. Supported values are `WARNING`, `SUCCESS`, and `ERROR`.
-
-The test can take up to few minutes, depending on your hardware. Ensure that you have a good amount of RAM and nested virtualization enabled.
-
-**NOTE**: ROSE-T works only on Docker on Linux or WSL2, and it is compatible only with the `amd64` architecture (Apple Silicon is not supported).
-
-## Customizations 
-
-### Change the vendor router Docker image name
-
-**NOTE:** For now, the container name is hardcoded into ROSE-T. 
-We plan to add a configuration parameter to specify the image name.
-If your image name differs, you have to manually change it into the corresponding `src/rs4lk/configuration/vendor/<os_name>_configuration.py` file, by modifying the `get_image` method of the class.
+## Customizations
 
 ### Using a local relationships file instead of RIPE DB
 
-For testing or lab environments where RIPE DB relationships are not available, you can provide a local relationships file:
+For testing or lab environments where RIPE DB relationships are not available, you can provide a local relationships file via the `relationships` field in the candidate JSON (or via `--relationships` on the command line). The file must be in JSON format:
 
-```
-cd src
-sudo -E PATH=$PATH python3 test.py --config_path <CONFIGURATION_PATH> --config_syntax Frr --relationships ../resources/test_relationships.json
-```
-
-The relationships file must be in JSON format:
 ```json
 {
   "AS101": {
@@ -202,3 +237,25 @@ The relationships file must be in JSON format:
 ```
 
 Valid relationship values are: `provider`, `customer`, `peer`.
+
+#### Specifying transit ASes
+
+The relationships file also supports an optional `as_rules` section to declare which providers are used as transit by a given AS. This information is used by ROSE-T during the Global Information verification to correctly assess the routing policies of the candidate and its neighbors.
+
+```json
+{
+  "AS3": {
+    "AS1": "provider",
+    "AS2": "provider",
+    "AS4": "customer",
+    "AS5": "customer"
+  },
+  "as_rules": {
+    "AS3": {
+      "transits": [2, 4]
+    }
+  }
+}
+```
+
+In this example, AS3 uses AS2 and AS4 as transit providers. The `transits` field accepts a list of ASNs.
